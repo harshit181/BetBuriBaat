@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Betting Buri Baat</string>
+    <string name="title_home">Bets</string>
+    <string name="title_dashboard">Stats</string>
+    <string name="title_notifications">To Be Implemented</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
