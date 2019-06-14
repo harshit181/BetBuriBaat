@@ -5,18 +5,28 @@ import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.mongodb.stitch.android.services.mongodb.remote.RemoteFindIterable;
+
+import org.bson.Document;
+
 import java.util.ArrayList;
 
-import stocker.harshit.com.betburibaat.homeScreen.TvShow;
-import stocker.harshit.com.betburibaat.homeScreen.TvShowAdapter;
+import stocker.harshit.com.betburibaat.Db.DbCollection;
+import stocker.harshit.com.betburibaat.homeScreen.AddMatch;
+import stocker.harshit.com.betburibaat.homeScreen.Matches;
+import stocker.harshit.com.betburibaat.homeScreen.BetTitleAdapter;
 
 
 /**
@@ -33,12 +43,11 @@ public class Home extends Fragment {
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
     RecyclerView recyclerView;
-    TvShowAdapter tvShowAdapter;
-    ArrayList<TvShow> tvShows=new ArrayList<TvShow>();
+    BetTitleAdapter betTitleAdapter;
+    ArrayList<Matches> matches = new ArrayList<Matches>();
+    private FloatingActionButton fab;
 
-    public static final String[] TvShows= {"Breaking Bad","Rick and Morty", "FRIENDS","Sherlock","Stranger Things","Breaking","Breaking","sad","Breaking","weq","asd","qwew"};
-    public static final int[] TvShowImgs = {R.drawable.ic_home_black_24dp,R.drawable.ic_home_black_24dp,R.drawable.ic_home_black_24dp,R.drawable.ic_home_black_24dp,R.drawable.ic_home_black_24dp};
-
+    public static final int[] TvShowImgs = {R.drawable.ic_home_black_24dp, R.drawable.ic_home_black_24dp, R.drawable.ic_home_black_24dp, R.drawable.ic_home_black_24dp, R.drawable.ic_home_black_24dp};
 
 
     // TODO: Rename and change types of parameters
@@ -82,21 +91,47 @@ public class Home extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        View RootView =inflater.inflate(R.layout.fragment_home, container, false);
-        for(int i=0;i<TvShows.length;i++)
-        {
-            TvShow tvShow = new TvShow();
-
-            tvShow.setTvshow(TvShows[i]);
-            tvShow.setImgTvshow(TvShowImgs[0]);
-            tvShows.add(tvShow);
-        }
-        tvShowAdapter = new TvShowAdapter(tvShows);
-        recyclerView = (RecyclerView)RootView.findViewById(R.id.TvShows);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.setItemAnimator(new DefaultItemAnimator());
-        recyclerView.setAdapter(tvShowAdapter);
+        View RootView = inflater.inflate(R.layout.fragment_home, container, false);
+        fetchMatchesAndUpdateView(RootView);
+        FloatingActionButton fab = (FloatingActionButton) RootView.findViewById(R.id.floatingActionButton);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+              Fragment  fragment = new AddMatch();
+              loadFragment(fragment);
+            }
+        });
         return RootView;
+    }
+
+    public void fetchMatchesAndUpdateView(View RootView) {
+        RemoteFindIterable query = DbCollection.getColl().find();
+        ArrayList<Document> result = new ArrayList<Document>();
+        matches.clear();
+        query.into(result).addOnSuccessListener(new OnSuccessListener<ArrayList<Document>>() {
+
+                                                    @Override
+                                                    public void onSuccess(final ArrayList<Document> ignored) {
+
+                                                        for (int i = 0; i < result.size(); i++) {
+                                                            Matches matches = new Matches();
+                                                            Document x = result.get(i);
+                                                            Log.d("MatchID is", x.getString("Match_Name"));
+                                                            matches.setMatchName(x.getString("Match_Name"));
+                                                            matches.setMatchId(TvShowImgs[0]);
+                                                            Home.this.matches.add(matches);
+                                                        }
+                                                        betTitleAdapter = new BetTitleAdapter(matches);
+                                                        recyclerView = (RecyclerView) RootView.findViewById(R.id.Matches);
+                                                        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+                                                        recyclerView.setItemAnimator(new DefaultItemAnimator());
+                                                        recyclerView.setAdapter(betTitleAdapter);
+
+                                                    }
+
+                                                }
+        );
+        Log.d("Result Size is ", "" + result.size());
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -123,16 +158,14 @@ public class Home extends Fragment {
         mListener = null;
     }
 
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
+    private void loadFragment(Fragment fragment) {
+        // load fragment
+        FragmentTransaction transaction = getActivity().getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.frame_container, fragment);
+        transaction.addToBackStack(null);
+        transaction.commit();
+    }
+
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
         void onFragmentInteraction(Uri uri);
